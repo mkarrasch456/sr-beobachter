@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SR Beobachter – Prototyp</title>
+<style>
+:root{--green:#159447;--light:#f4f7f5;--line:#dfe5e1;--text:#17201b;--muted:#6d776f;--orange:#e88a16;--red:#d94841;--blue:#3974b7}
+*{box-sizing:border-box} body{margin:0;background:#eef1ef;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text)}
+.app{max-width:720px;margin:auto;min-height:100vh;background:white;display:flex;flex-direction:column}
+header{padding:16px 18px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:3}
+.top{display:flex;justify-content:space-between;align-items:center}.status{color:var(--green);font-weight:750}.menu{font-size:24px}
+.score{display:flex;justify-content:space-between;align-items:center;margin-top:14px}.team{text-align:center;width:33%;font-weight:650}.scoreline{text-align:center;font-size:28px;font-weight:800}.half{font-size:12px;color:var(--muted);font-weight:500}
+.timer{display:flex;justify-content:center;align-items:center;gap:18px;padding:16px;border-bottom:1px solid var(--line)}.time{font-size:34px;font-weight:800}.play{width:46px;height:46px;border:0;border-radius:50%;background:var(--green);color:white;font-size:21px}.ghost{border:1px solid var(--line);background:white;border-radius:9px;padding:9px 12px}
+main{padding:18px;flex:1}.micWrap{text-align:center;padding:10px 0 22px}.mic{width:112px;height:112px;border-radius:50%;border:0;background:var(--green);color:white;font-size:45px;box-shadow:0 0 0 14px #e9f5ed}.mic.listening{background:#c43c36;animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.05)}}
+h2{font-size:16px;margin:12px 0}.sub{color:var(--muted);font-size:13px}.event{border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;display:flex;gap:10px;align-items:center}.badge{font-size:18px;width:30px;text-align:center}.event b{display:block}.event small{color:var(--muted)}
+.tabs{position:sticky;bottom:0;background:white;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr)}.tab{border:0;background:white;padding:10px 4px;color:var(--muted);font-size:12px}.tab.active{color:var(--green);font-weight:750}
+.page{display:none}.page.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.quick{border:1px solid var(--line);background:white;border-radius:10px;padding:12px 5px;font-weight:650}.quick span{display:block;font-size:22px;margin-bottom:4px}
+.card{background:var(--light);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.green{color:var(--green)}.orange{color:var(--orange)}.red{color:var(--red)}
+textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit}.btn{border:0;background:var(--green);color:white;border-radius:9px;padding:12px 15px;font-weight:750}.btn.secondary{background:white;color:var(--text);border:1px solid var(--line)}
+.back{border:0;background:none;padding:0;font-weight:700;margin-bottom:12px}
+.rec{font-size:13px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="top"><span>☰</span><span class="status">Spiel läuft</span><span class="menu">⋮</span></div>
+  <div class="score"><div class="team">FC Heim</div><div class="scoreline">1 : 0<div class="half">1. Halbzeit</div></div><div class="team">FC Gast</div></div>
+</header>
+
+<section id="spiel" class="page active">
+  <div class="timer"><button class="play" onclick="toggleTimer()">▶</button><div><div id="time" class="time">34:27</div><div class="half">Spielzeit</div></div><button class="ghost" onclick="openAdd()">＋ Nachtrag</button></div>
+  <main>
+    <div class="micWrap">
+      <button id="mic" class="mic" onclick="voice()">🎙</button>
+      <h2>Beobachtung sprechen</h2>
+      <div id="voiceHint" class="sub">Taste drücken und sprechen. Loslassen zum Speichern.</div>
+    </div>
+    <h2>Letzte Ereignisse</h2>
+    <div id="recent"></div>
+    <h2>Schnellzugriff</h2>
+    <div class="grid">
+      <button class="quick" onclick="addQuick('Foulspiel')"><span>⚽</span>Foul</button>
+      <button class="quick" onclick="addQuick('Abseits')"><span>🚩</span>Abseits</button>
+      <button class="quick" onclick="addQuick('Tor')"><span>🥅</span>Tor</button>
+      <button class="quick" onclick="addQuick('Strafstoß')"><span>⚽</span>11m</button>
+      <button class="quick" onclick="addQuick('Verwarnung')"><span>🟨</span>Gelb</button>
+      <button class="quick" onclick="addQuick('Feldverweis')"><span>🟥</span>Rot</button>
+      <button class="quick" onclick="addQuick('Vorteil')"><span>👍</span>Vorteil</button>
+      <button class="quick" onclick="addQuick('Eckstoß')"><span>🚩</span>Ecke</button>
+      <button class="quick" onclick="addQuick('Sonstiges')"><span>•••</span>Sonstiges</button>
+    </div>
+  </main>
+</section>
+
+<section id="ereignisse" class="page"><main>
+  <h2>Ereignisse</h2><div class="card"><b>Filter</b><br><span class="sub">Alle Rubriken · chronologisch</span></div><div id="allEvents"></div>
+</main></section>
+
+<section id="auswertung" class="page"><main>
+  <h2>Auswertung (Prototyp)</h2>
+  <div class="card"><b>Rubriken-Übersicht</b>
+    <div class="row"><span>Spielleitungsqualität</span><span class="green">● 7</span></div>
+    <div class="row"><span>Disziplinarkontrolle</span><span class="green">● 2</span></div>
+    <div class="row"><span>Persönliches Auftreten</span><span class="green">● 3</span></div>
+    <div class="row"><span>Fitness / Stellungsspiel</span><span class="orange">● 4</span></div>
+    <div class="row"><span>Teamarbeit</span><span class="green">● 3</span></div>
+  </div>
+  <div class="card"><b>Schwerpunkte – Vorschau</b><p class="rec green">✓ guter Vorteil<br>✓ gute Kommunikation mit SRA 1<br>✓ gute Seiteneinsicht</p><p class="rec orange">→ Abstimmung mit SRA 1 prüfen<br>→ Stellungsspiel bei Strafraumsituationen</p></div>
+  <button class="btn" onclick="show('gespraech')">Zur Gesprächsvorbereitung</button>
+</main></section>
+
+<section id="gespraech" class="page"><main>
+  <button class="back" onclick="show('auswertung')">← Zur Auswertung</button>
+  <h2>Gesprächsvorbereitung</h2>
+  <div class="card"><b>Positives</b><p>Guter Vorteil im Mittelfeld. Gute Kommunikation und Zusammenarbeit mit SRA 1. Gute Zweikampfbeurteilung.</p></div>
+  <div class="card"><b>Optimierungsbereiche</b><p>Stellungsspiel bei Strafraumsituationen. Abstimmung mit SRA 1 bei angezeigten Foulspielen.</p></div>
+  <div class="card"><b>Schlüsselszenen</b><p>Die Anwendung würde hier später automatisch die wichtigsten Szenen aus deinen Beobachtungen auswählen.</p></div>
+  <button class="btn" onclick="alert('Im nächsten Entwicklungsschritt wird hier automatisch ein 10–15-Minuten-Gesprächsleitfaden erzeugt.')">Gesprächsleitfaden erzeugen</button>
+</main></section>
+
+<section id="detail" class="page"><main>
+  <button class="back" onclick="show('spiel')">← Zurück</button>
+  <h2 id="detailTitle">Ereignisdetails</h2>
+  <div class="card" id="detailCard"></div>
+  <button class="btn" onclick="saveDetail()">Speichern</button>
+</main></section>
+
+<nav class="tabs">
+<button class="tab active" onclick="show('spiel',this)">◷<br>Spiel</button>
+<button class="tab" onclick="show('ereignisse',this)">▤<br>Ereignisse</button>
+<button class="tab" onclick="show('auswertung',this)">▥<br>Auswertung</button>
+<button class="tab" onclick="show('gespraech',this)">♡<br>Gespräch</button>
+</nav>
+</div>
+
+<script>
+let events=[
+ {t:'34:27',type:'Vorteil',text:'Heim Nr. 7 – Trikotvergehen, Mittelfeld',rating:'positiv'},
+ {t:'32:11',type:'Verwarnung',text:'Gast Nr. 7 – Handspiel',rating:'neutral'},
+ {t:'28:45',type:'Abseits',text:'Gast Nr. 9',rating:'neutral'},
+ {t:'26:33',type:'Tor 1:0',text:'Heim Nr. 11 – Strafstoßtor',rating:'neutral'},
+ {t:'23:18',type:'Foulspiel',text:'Heim Nr. 7 an Gast Nr. 17',rating:'neutral'}
+];
+let timerOn=false, sec=34*60+27, timerId=null, current=null;
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function toggleTimer(){timerOn=!timerOn;document.querySelector('.play').textContent=timerOn?'❚❚':'▶';if(timerOn)timerId=setInterval(()=>{sec++;document.getElementById('time').textContent=fmt(sec)},1000);else clearInterval(timerId)}
+function render(){let r=document.getElementById('recent');r.innerHTML=events.slice(0,6).map((e,i)=>`<div class="event" onclick="detail(${i})"><div class="badge">${e.rating==='positiv'?'👍':e.type.includes('Verwarnung')?'🟨':e.type.includes('Abseits')?'🚩':'⚽'}</div><div><b>${e.t} · ${e.type}</b><small>${e.text}</small></div></div>`).join('');document.getElementById('allEvents').innerHTML=events.map((e,i)=>`<div class="event" onclick="detail(${i})"><div class="badge">◉</div><div><b>${e.t} · ${e.type}</b><small>${e.text}</small></div></div>`).join('')}
+function addQuick(type){events.unshift({t:fmt(sec),type,text:'Neue Beobachtung – Details ergänzen',rating:'neutral'});render();detail(0)}
+function detail(i){current=i;let e=events[i];document.getElementById('detailCard').innerHTML=`<b>${e.t} · ${e.type}</b><div class="row"><span>Beobachtung</span><span>${e.text}</span></div><div class="row"><span>Bewertung</span><span class="${e.rating==='positiv'?'green':''}">${e.rating}</span></div><div class="row"><span>DFB-Zuordnung</span><span>Vorschlag folgt</span></div><p><textarea id="comment">${e.text}</textarea></p>`;show('detail')}
+function saveDetail(){events[current].text=document.getElementById('comment').value;render();show('spiel')}
+function openAdd(){addQuick('Nachtrag')}
+function voice(){let b=document.getElementById('mic'),h=document.getElementById('voiceHint');if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){h.textContent='Spracherkennung wird in diesem Browser nicht unterstützt. Die Schnellzugriffe funktionieren trotzdem.';return}let R=window.SpeechRecognition||window.webkitSpeechRecognition,r=new R();r.lang='de-DE';r.interimResults=false;r.continuous=false;b.classList.add('listening');h.textContent='Ich höre zu …';r.onresult=e=>{let text=e.results[0][0].transcript;events.unshift({t:fmt(sec),type:guess(text),text,rating:/gut|gute|guter|positiv/i.test(text)?'positiv':'neutral'});render();h.textContent='Gespeichert: '+text;b.classList.remove('listening')};r.onerror=()=>{h.textContent='Spracherkennung konnte nicht gestartet werden.';b.classList.remove('listening')};r.onend=()=>b.classList.remove('listening');r.start()}
+function guess(t){if(/vorteil/i.test(t))return'Vorteil';if(/abseits/i.test(t))return'Abseits';if(/tor/i.test(t))return'Tor';if(/verwarn|gelb/i.test(t))return'Verwarnung';if(/ecke|eckstoß/i.test(t))return'Eckstoß';if(/freistoß/i.test(t))return'Freistoß';if(/stellungsspiel/i.test(t))return'Stellungsspiel';if(/kommunikation|zusammenarbeit/i.test(t))return'Teamarbeit';return/Foul|foulspiel/i.test(t)?'Foulspiel':'Beobachtung'}
+function show(id,tab){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));if(tab)tab.classList.add('active');if(id==='spiel')document.querySelectorAll('.tab')[0].classList.add('active');if(id==='ereignisse')document.querySelectorAll('.tab')[1].classList.add('active');if(id==='auswertung')document.querySelectorAll('.tab')[2].classList.add('active');if(id==='gespraech')document.querySelectorAll('.tab')[3].classList.add('active')}
+render();
+</script>
+</body>
+</html>
